@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Información</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e8f5e9;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 3px solid #4caf50;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            max-width: 120px;
+        }
+        h1 {
+            text-align: center;
+            color: #2e7d32;
+            font-size: 26px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #1b5e20;
+            font-weight: bold;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0 15px;
+            border: 2px solid #a5d6a7;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #43a047;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2e7d32;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .actions button {
+            flex: 1;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .result div {
+            background-color: #f1f8e9;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #c5e1a5;
+            border-radius: 6px;
+        }
+        .result div p {
+            margin: 5px 0;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .file-name {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-name .delete {
+            cursor: pointer;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="BOCEL.PNG" alt="Logo">
+        </div>
+
+        
+
+        <!-- Buscador por fecha -->
+        <div class="search-container">
+            <label for="searchDate">Buscar por fecha (formato: dd/mm/yyyy):</label>
+            <input type="text" id="searchDate" placeholder="Ejemplo: 14/12/2024">
+            <button type="button" onclick="searchByDate()">Buscar</button>
+        </div>
+
+        <!-- Formulario para guardar información -->
+        <form id="dataForm">
+            <label for="date">Fecha:</label>
+            <input type="text" id="date" placeholder="Ejemplo: 14/12/2024" required>
+
+            <label for="info">Información:</label>
+            <textarea id="info" rows="5" placeholder="Escribe aquí la información..." required></textarea>
+
+            <label for="file">Subir archivo:</label>
+            <input type="file" id="file">
+
+            <div class="actions">
+                <button type="button" onclick="saveData()">Guardar</button>
+            </div>
+        </form>
+
+        <!-- Área para mostrar datos guardados -->
+        <div id="dataList" class="result"></div>
+    </div>
+
+    <script>
+        // Cargar los datos del localStorage al cargar la página
+        let storage = JSON.parse(localStorage.getItem('dataStorage')) || [];
+
+        // Función para guardar datos
+        function saveData() {
+            const date = document.getElementById('date').value;
+            const info = document.getElementById('info').value;
+            const file = document.getElementById('file').files[0];
+
+            if (!date || !info) {
+                alert('Por favor, complete todos los campos requeridos.');
+                return;
+            }
+
+            if (!isValidDate(date)) {
+                alert('Por favor, ingrese una fecha en el formato correcto (dd/mm/yyyy).');
+                return;
+            }
+
+            const dataEntry = { date, info, file: file ? { name: file.name, url: URL.createObjectURL(file) } : null };
+            storage.push(dataEntry);
+            localStorage.setItem('dataStorage', JSON.stringify(storage)); // Guardar los datos en el localStorage
+
+            document.getElementById('dataForm').reset();
+            renderDataList();
+        }
+
+        // Función para validar si la fecha está en formato correcto (dd/mm/yyyy)
+        function isValidDate(dateString) {
+            const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+            return regex.test(dateString);
+        }
+
+        // Función para buscar datos por fecha
+        function searchByDate() {
+            const searchDate = document.getElementById('searchDate').value;
+            if (!searchDate) {
+                alert('Por favor, ingrese una fecha para buscar.');
+                return;
+            }
+
+            if (!isValidDate(searchDate)) {
+                alert('Por favor, ingrese una fecha en el formato correcto (dd/mm/yyyy).');
+                return;
+            }
+
+            const filteredData = storage.filter(entry => entry.date === searchDate);
+            renderDataList(filteredData);
+        }
+
+        // Función para mostrar los datos guardados
+        function renderDataList(data = storage) {
+            const dataListDiv = document.getElementById('dataList');
+            dataListDiv.innerHTML = '';
+
+            if (data.length === 0) {
+                dataListDiv.innerHTML = `<p>No se encontraron datos para la fecha ingresada.</p>`;
+                return;
+            }
+
+            const groupedData = data.reduce((acc, entry) => {
+                acc[entry.date] = acc[entry.date] || [];
+                acc[entry.date].push(entry);
+                return acc;
+            }, {});
+
+            Object.keys(groupedData).forEach(date => {
+                const dateSection = document.createElement('div');
+                dateSection.innerHTML = `<h3>Fecha: ${date}</h3>`; // Usar fecha tal cual
+
+                groupedData[date].forEach((entry, index) => {
+                    const entryDiv = document.createElement('div');
+                    entryDiv.innerHTML = `
+                        <p><strong>Información:</strong> ${entry.info}</p>
+                        <div class="file-name">
+                            <p><strong>Archivo:</strong> ${entry.file ? `<a href="${entry.file.url}" target="_blank">${entry.file.name}</a>` : 'No se subió ningún archivo'}</p>
+                            ${entry.file ? `<span class="delete" onclick="removeFile(${index})">X</span>` : ''}
+                        </div>
+                        <div class="actions">
+                            <button onclick="editData(${index})">Editar</button>
+                            <button onclick="removeData(${index})">Eliminar</button>
+                        </div>
+                    `;
+                    dateSection.appendChild(entryDiv);
+                });
+
+                dataListDiv.appendChild(dateSection);
+            });
+        }
+
+        // Función para eliminar un archivo
+        function removeFile(index) {
+            storage[index].file = null; // Eliminar el archivo de la entrada
+            localStorage.setItem('dataStorage', JSON.stringify(storage)); // Guardar los cambios en el localStorage
+            renderDataList();
+        }
+
+        // Función para eliminar datos
+        function removeData(index) {
+            storage.splice(index, 1);
+            localStorage.setItem('dataStorage', JSON.stringify(storage)); // Guardar los cambios en el localStorage
+            alert('Datos eliminados.');
+            renderDataList();
+        }
+
+        // Función para editar datos
+        function editData(index) {
+            const entry = storage[index];
+
+            document.getElementById('date').value = entry.date;
+            document.getElementById('info').value = entry.info;
+
+            storage.splice(index, 1);
+            localStorage.setItem('dataStorage', JSON.stringify(storage)); // Guardar los cambios en el localStorage
+            renderDataList();
+        }
+
+        // Cargar los datos al cargar la página
+        renderDataList();
+
+    </script>
+</body>
+</html>
